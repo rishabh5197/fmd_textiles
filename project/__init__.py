@@ -1,27 +1,69 @@
-from flask import Flask
+from flask import Flask, app
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
-from flask_migrate import Migrate  # not required, but handy
+from flask_migrate import Migrate
 from flask_wtf.csrf import CSRFProtect
-from project.spinning.views import spinning_bp
 import os
+from project.models import *   # noqa: F401
+from project.spinning.views import spinning_bp
 
-# Global extensions (they'll be initialized with the app in create_app)
 db = SQLAlchemy()
 login_manager = LoginManager()
 migrate = Migrate()
 csrf = CSRFProtect()
 
 def create_app(config_object: str | None = None) -> Flask:
-    """
-    Application factory.
-    You can pass a dotted-path config object string or rely on defaults/env vars.
-    """
     app = Flask(__name__, template_folder=None, static_folder=None)
 
-    # ---- Basic config (safe defaults) ----
+    # ---- Basic config ----
     app.config.setdefault("SECRET_KEY", os.getenv("SECRET_KEY", "dev-secret-change-me"))
     app.config.setdefault("SQLALCHEMY_DATABASE_URI", os.getenv("DATABASE_URL", "sqlite:///app.db"))
+
+    #  -------------------------------- Postgres SQL -------------------------------------------
+    # For example, PostgreSQL running locally
+    # app.config.setdefault(
+    # "SQLALCHEMY_DATABASE_URI",
+    # os.getenv("DATABASE_URL", "postgresql://username:password@localhost:5432/dbname")
+    # )
+
+
+    # Fetch each part from env vars, with sensible defaults if you want
+    # pg_host = os.getenv("PG_HOST", "localhost")
+    # pg_port = os.getenv("PG_PORT", "5432")
+    # pg_db = os.getenv("PG_DATABASE", "mydatabase")
+    # pg_user = os.getenv("PG_USERNAME", "myuser")
+    # pg_pass = os.getenv("PG_PASSWORD", "mypassword")
+
+    # # Build the PostgreSQL URI string
+    # postgres_uri = f"postgresql://{pg_user}:{pg_pass}@{pg_host}:{pg_port}/{pg_db}"
+
+    # app.config.setdefault("SQLALCHEMY_DATABASE_URI", postgres_uri)
+    # app.config.setdefault("SQLALCHEMY_TRACK_MODIFICATIONS", False)
+    #  -------------------------------- Postgres SQL -------------------------------------------
+
+
+    #  -------------------------------- For MY SQL -------------------------------------------
+    # app = Flask(__name__)
+
+    # mysql_host = os.getenv("MYSQL_HOST", "localhost")
+    # mysql_port = os.getenv("MYSQL_PORT", "3306")
+    # mysql_db = os.getenv("MYSQL_DATABASE", "mydatabase")
+    # mysql_user = os.getenv("MYSQL_USERNAME", "myuser")
+    # mysql_pass = os.getenv("MYSQL_PASSWORD", "mypassword")
+
+    # # Format for MySQL URI:
+    # # "mysql+mysqlclient://<username>:<password>@<host>:<port>/<dbname>"
+    # # If using PyMySQL driver, replace mysqlclient with pymysql
+
+    # mysql_uri = f"mysql+mysqlclient://{mysql_user}:{mysql_pass}@{mysql_host}:{mysql_port}/{mysql_db}"
+    # # If using PyMySQL:
+    # # mysql_uri = f"mysql+pymysql://{mysql_user}:{mysql_pass}@{mysql_host}:{mysql_port}/{mysql_db}"
+
+    # app.config.setdefault("SQLALCHEMY_DATABASE_URI", mysql_uri)
+    # app.config.setdefault("SQLALCHEMY_TRACK_MODIFICATIONS", False)
+
+    #  -------------------------------- For MY SQL -------------------------------------------
+
     app.config.setdefault("SQLALCHEMY_TRACK_MODIFICATIONS", False)
     app.config.setdefault("WTF_CSRF_ENABLED", True)
 
@@ -34,22 +76,19 @@ def create_app(config_object: str | None = None) -> Flask:
     migrate.init_app(app, db)
     csrf.init_app(app)
 
-    # Flask-Login defaults (you can customize)
     login_manager.login_view = "spinning.login"
     login_manager.login_message_category = "info"
 
-    # ---- Register blueprints ----
+    # ---- Import models AFTER db is ready ----
+    # (This ensures model classes bind to the right db and avoids circular imports)
+    
+
+    # ---- Register blueprints AFTER extensions/models ----
     
     app.register_blueprint(spinning_bp)
-
-    # ---- Jinja global base template path (optional) ----
-    # We’ll point templates/static via blueprint; base.html is inside Spinning/templates
-
     return app
 
-# Flask-Login user loader — imported here to avoid circulars
-from project.models import User  # noqa: E402
-
+# Define the user loader with a *local import* to avoid module-level cycles
 @login_manager.user_loader
 def load_user(user_id: str):
     return User.query.get(int(user_id))
