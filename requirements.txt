@@ -4,3 +4,6 @@ Flask-Login
 Flask-WTF
 Flask-Migrate
 email-validator
+psycopg2-binary
+mysqlclient
+PyMySQL

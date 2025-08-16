@@ -3,8 +3,8 @@
 {% block content %}
 
 <section class="hero" aria-labelledby="heroTitle">
-  <h1 id="heroTitle">Ship faster with a single place for your actions</h1>
-  <p>Create, modify, and retrieve actions in seconds. Lightweight UI, instant feedback, and a smooth workflow built on Flask.</p>
+  <h1 id="heroTitle">A Faster way to make life easier</h1>
+  <p>Create modify or do anything.</p>
 </section>
 
 <section class="grid" aria-label="Quick actions">
@@ -43,57 +43,6 @@
         <small>Search & filter instantly</small>
       </div>
     </div>
-  </div>
-
-  <div class="card span-8">
-    <h3>Recent actions</h3>
-    {% if recent_actions %}
-      <div class="muted" style="margin-bottom:8px">Last updated first</div>
-      <div style="overflow:auto">
-        <table aria-label="Recent actions">
-          <thead>
-            <tr><th>Title</th><th>Status</th><th>Updated</th><th>Actions</th></tr>
-          </thead>
-          <tbody id="recentBody">
-            {% for a in recent_actions %}
-              <tr data-id="{{ a.id }}">
-                <td>{{ a.title }}</td>
-                <td>
-                  <span class="badge {{ a.status }}">{{ a.status.replace('-', ' ') }}</span>
-                </td>
-                <td>{{ a.updated_at.strftime('%Y-%m-%d %H:%M UTC') }}</td>
-                <td>
-                  <button class="btn ghost js-edit" data-id="{{ a.id }}">Edit</button>
-                  <button class="btn ghost js-view" data-id="{{ a.id }}">View</button>
-                  <button class="btn ghost js-del" data-id="{{ a.id }}">Delete</button>
-                </td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    {% else %}
-      <p class="muted">No actions yet. Click <strong>+ New Action</strong> to create your first one.</p>
-    {% endif %}
-  </div>
-
-  <div class="card span-4">
-    <h3>Find actions</h3>
-    <div class="field">
-      <label for="q" class="sr-only">Query</label>
-      <input id="q" placeholder="Search title or description…" />
-    </div>
-    <div class="field">
-      <label for="filterStatus" class="sr-only">Status</label>
-      <select id="filterStatus">
-        <option value="">Any status</option>
-        <option value="pending">Pending</option>
-        <option value="in-progress">In progress</option>
-        <option value="done">Done</option>
-      </select>
-    </div>
-    <button class="btn" id="btnSearch">Search</button>
-    <div id="searchResults" style="margin-top:12px"></div>
   </div>
 </section>
 

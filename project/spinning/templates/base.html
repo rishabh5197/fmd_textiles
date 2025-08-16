@@ -16,8 +16,7 @@
         <span>ActionDesk</span>
       </div>
       <div class="nav-actions">
-        <button class="btn ghost" id="toggleTheme" aria-pressed="false" title="Toggle theme">Toggle theme</button>
-        <button class="btn" id="openCreate">+ New Action</button>
+        <button class="btn ghost" id="toggleTheme" aria-pressed="false" title="Toggle theme"> 🌙Toggle theme</button>
       </div>
     </nav>
 
@@ -59,15 +58,58 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <script>
-    // theme toggle
-    const btn = document.getElementById('toggleTheme');
-    btn?.addEventListener('click', () => {
+<script>
+    (function () {
       const root = document.documentElement;
-      const isLight = root.getAttribute('data-theme') === 'light';
-      root.setAttribute('data-theme', isLight ? 'dark' : 'light');
-      btn.setAttribute('aria-pressed', String(!isLight));
-    });
-  </script>
+      const btn = document.getElementById('toggleTheme');
+
+      function applyTheme(theme, source = 'user') {
+        root.setAttribute('data-theme', theme);
+        root.setAttribute('data-theme-source', source);
+        try { localStorage.setItem('theme', theme); } catch (_) {}
+        if (btn) {
+          btn.setAttribute('aria-pressed', String(theme !== 'light'));
+        }
+      }
+
+      function initTheme() {
+        let theme;
+        try {
+          theme = localStorage.getItem('theme');
+        } catch (_) {}
+        if (!theme) {
+          const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          theme = prefersDark ? 'dark' : 'light';
+          applyTheme(theme, 'system');
+        } else {
+          applyTheme(theme);
+        }
+      }
+
+      // toggle handler
+      function toggleTheme() {
+        const isLight = root.getAttribute('data-theme') === 'light';
+        applyTheme(isLight ? 'dark' : 'light');
+      }
+
+      // run once on load
+      initTheme();
+
+      // attach listeners
+      if (btn) {
+        btn.addEventListener('click', toggleTheme);
+        btn.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleTheme(); }
+        });
+      }
+
+      // sync across tabs
+      window.addEventListener('storage', (e) => {
+        if (e.key === 'theme' && e.newValue) {
+          applyTheme(e.newValue);
+        }
+      });
+    })();
+</script>
 </body>
 </html>
