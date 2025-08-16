@@ -4,7 +4,7 @@ from flask_login import LoginManager
 from flask_migrate import Migrate
 from flask_wtf.csrf import CSRFProtect
 import os
-from project.models import *   # noqa: F401
+from project.models import *   
 from project.spinning.views import spinning_bp
 
 db = SQLAlchemy()
