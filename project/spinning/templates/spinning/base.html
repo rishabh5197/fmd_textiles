@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>{% block title %}Base{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('spinning.static', filename='main.css') }}">
+</head>
+<body>
+  <header>
+    <div class="container">
+      <nav>
+        <a href="{{ url_for('spinning.home') }}">Home</a>
+        <a href="{{ url_for('spinning.login') }}">Login</a>
+        <a href="{{ url_for('spinning.protected') }}">Protected</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="flash {{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    {% if content_title %}
+      <h1>{{ content_title }}</h1>
+    {% endif %}
+
+    {% block content %}
+      {% if content is string %}
+        <p>{{ content }}</p>
+      {% elif content %}
+        <!-- If a WTForm was passed as 'content', render it quickly -->
+        <form method="post" novalidate>
+          {{ content.hidden_tag() }}
+          {% for field in content if field.type != 'CSRFTokenField' and field.type != 'SubmitField' %}
+            <div style="margin-bottom:.75rem">
+              <label>{{ field.label }}</label><br/>
+              {{ field(size=40) }}
+              {% if field.errors %}
+                <div class="flash warning">
+                  {% for e in field.errors %}{{ e }}{% if not loop.last %}<br/>{% endif %}{% endfor %}
+                </div>
+              {% endif %}
+            </div>
+          {% endfor %}
+          {{ content.submit() }}
+        </form>
+      {% else %}
+        <p>Content goes here.</p>
+      {% endif %}
+    {% endblock %}
+  </div>
+
+  <footer>
+    <div class="container">
+      <small>© {{ config.SITE_NAME or "Flask App" }}</small>
+    </div>
+  </footer>
+</body>
+</html>

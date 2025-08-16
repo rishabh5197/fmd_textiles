@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Home • Spinning{% endblock %}
+
+{% block content %}
+  <h1>Welcome 👋</h1>
+  <p>This is the Spinning blueprint’s index page.</p>
+  <p>
+    <a href="{{ url_for('spinning.login') }}">Login</a> ·
+    <a href="{{ url_for('spinning.protected') }}">Protected</a>
+  </p>
+{% endblock %}

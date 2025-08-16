@@ -1,0 +1,12 @@
+project/
+├─ Spinning/
+│  ├─ templates/
+│  │  └─ spinning/
+│  │     └─ index.html
+│  ├─ static/
+│  │  └─ main.css
+│  ├─ forms.py
+│  └─ views.py
+├─ __init__.py
+├─ Models.py
+└─ app
