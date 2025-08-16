@@ -1,14 +1,12 @@
-"""
-WSGI/entry point.
+from project import app
+import project.spinning.views
+from flask import redirect, url_for,render_template
 
-Run with:
-    python -m project.app
-or:
-    flask --app project.app run --debug
-"""
-from project import create_app 
 
-app = create_app()
+
+@app.route("/")
+def home():
+    return redirect(url_for("spinning.home"))
 
 if __name__ == "__main__":
     app.run(debug=True)
