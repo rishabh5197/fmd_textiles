@@ -3,10 +3,14 @@ project/
 │  ├─ templates/
 │  │  └─ spinning/
 │  │     └─ index.html
+│  │  base.html
 │  ├─ static/
 │  │  └─ main.css
 │  ├─ forms.py
 │  └─ views.py
 ├─ __init__.py
 ├─ Models.py
-└─ app
+app.py
+readme.md
+.env
+requirements.txt

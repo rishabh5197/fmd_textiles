@@ -32,4 +32,4 @@ def load_user(user_id):
 
 # Import and register blueprint after everything else is initialized
 from project.spinning.views import spinning_bp
-app.register_blueprint(spinning_bp)
+app.register_blueprint(spinning_bp,url_prefix="/spinning")
