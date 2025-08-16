@@ -1,65 +1,73 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>{% block title %}Base{% endblock %}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}Actions · Dashboard{% endblock %}</title>
+  <meta name="color-scheme" content="light dark" />
   <link rel="stylesheet" href="{{ url_for('spinning.static', filename='main.css') }}">
+  <script defer src="{{ url_for('spinning.static', filename='app.js') }}"></script>
 </head>
 <body>
-  <header>
-    <div class="container">
-      <nav>
-        <a href="{{ url_for('spinning.home') }}">Home</a>
-        <a href="{{ url_for('spinning.login') }}">Login</a>
-        <a href="{{ url_for('spinning.protected') }}">Protected</a>
-      </nav>
-    </div>
-  </header>
-
   <div class="container">
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for category, message in messages %}
-          <div class="flash {{ category }}">{{ message }}</div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
+    <nav class="nav" aria-label="Primary">
+      <div class="brand" aria-label="Brand">
+        <div class="logo" aria-hidden="true"></div>
+        <span>ActionDesk</span>
+      </div>
+      <div class="nav-actions">
+        <button class="btn ghost" id="toggleTheme" aria-pressed="false" title="Toggle theme">Toggle theme</button>
+        <button class="btn" id="openCreate">+ New Action</button>
+      </div>
+    </nav>
 
-    {% if content_title %}
-      <h1>{{ content_title }}</h1>
-    {% endif %}
-
-    {% block content %}
-      {% if content is string %}
-        <p>{{ content }}</p>
-      {% elif content %}
-        <!-- If a WTForm was passed as 'content', render it quickly -->
-        <form method="post" novalidate>
-          {{ content.hidden_tag() }}
-          {% for field in content if field.type != 'CSRFTokenField' and field.type != 'SubmitField' %}
-            <div style="margin-bottom:.75rem">
-              <label>{{ field.label }}</label><br/>
-              {{ field(size=40) }}
-              {% if field.errors %}
-                <div class="flash warning">
-                  {% for e in field.errors %}{{ e }}{% if not loop.last %}<br/>{% endif %}{% endfor %}
-                </div>
-              {% endif %}
-            </div>
-          {% endfor %}
-          {{ content.submit() }}
-        </form>
-      {% else %}
-        <p>Content goes here.</p>
-      {% endif %}
-    {% endblock %}
+    {% block content %}{% endblock %}
   </div>
 
-  <footer>
-    <div class="container">
-      <small>© {{ config.SITE_NAME or "Flask App" }}</small>
+  <!-- Modal: Create / Update -->
+  <div class="modal-backdrop" id="modalBackdrop" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal" role="document">
+      <div style="display:flex; align-items:center; gap:8px">
+        <h3 id="modalTitle">Create Action</h3>
+        <button class="close-x" id="closeModal" aria-label="Close">&times;</button>
+      </div>
+      <form id="actionForm">
+        <input type="hidden" id="actionId" />
+        <div class="field">
+          <label for="title">Title <span class="sr-only">(required)</span></label>
+          <input id="title" name="title" placeholder="e.g. Prepare release notes" required />
+        </div>
+        <div class="field">
+          <label for="description">Description</label>
+          <textarea id="description" name="description" rows="4" placeholder="Add more details…"></textarea>
+        </div>
+        <div class="field">
+          <label for="status">Status</label>
+          <select id="status" name="status">
+            <option value="pending">Pending</option>
+            <option value="in-progress">In progress</option>
+            <option value="done">Done</option>
+          </select>
+        </div>
+        <div class="row">
+          <button type="button" class="btn ghost" id="cancelModal">Cancel</button>
+          <button type="submit" class="btn" id="submitBtn">Save</button>
+        </div>
+      </form>
     </div>
-  </footer>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    // theme toggle
+    const btn = document.getElementById('toggleTheme');
+    btn?.addEventListener('click', () => {
+      const root = document.documentElement;
+      const isLight = root.getAttribute('data-theme') === 'light';
+      root.setAttribute('data-theme', isLight ? 'dark' : 'light');
+      btn.setAttribute('aria-pressed', String(!isLight));
+    });
+  </script>
 </body>
 </html>

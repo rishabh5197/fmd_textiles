@@ -1,11 +1,100 @@
 {% extends "base.html" %}
-{% block title %}Home • Spinning{% endblock %}
-
+{% block title %}Actions · Landing{% endblock %}
 {% block content %}
-  <h1>Welcome 👋</h1>
-  <p>This is the Spinning blueprint’s index page.</p>
-  <p>
-    <a href="{{ url_for('spinning.login') }}">Login</a> ·
-    <a href="{{ url_for('spinning.protected') }}">Protected</a>
-  </p>
+
+<section class="hero" aria-labelledby="heroTitle">
+  <h1 id="heroTitle">Ship faster with a single place for your actions</h1>
+  <p>Create, modify, and retrieve actions in seconds. Lightweight UI, instant feedback, and a smooth workflow built on Flask.</p>
+</section>
+
+<section class="grid" aria-label="Quick actions">
+  <div class="card span-4">
+    <div class="tile" id="tileCreate">
+      <div class="ic" aria-hidden="true">
+        <!-- plus icon -->
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
+      </div>
+      <div class="txt">
+        <strong>Create Action</strong>
+        <small>Start something new</small>
+      </div>
+    </div>
+  </div>
+  <div class="card span-4">
+    <div class="tile" id="tileModify">
+      <div class="ic" aria-hidden="true">
+        <!-- edit icon -->
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12.3 6.3l5.4 5.4m-1.6-7l1.6 1.6c.8.8.8 2.1 0 2.9l-8.8 8.8-4.6 1.2 1.2-4.6 8.8-8.8c.8-.8 2.1-.8 2.9 0z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="txt">
+        <strong>Modify Action</strong>
+        <small>Update title, notes, status</small>
+      </div>
+    </div>
+  </div>
+  <div class="card span-4">
+    <div class="tile" id="tileRetrieve">
+      <div class="ic" aria-hidden="true">
+        <!-- search icon -->
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15z" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
+      </div>
+      <div class="txt">
+        <strong>Retrieve Actions</strong>
+        <small>Search & filter instantly</small>
+      </div>
+    </div>
+  </div>
+
+  <div class="card span-8">
+    <h3>Recent actions</h3>
+    {% if recent_actions %}
+      <div class="muted" style="margin-bottom:8px">Last updated first</div>
+      <div style="overflow:auto">
+        <table aria-label="Recent actions">
+          <thead>
+            <tr><th>Title</th><th>Status</th><th>Updated</th><th>Actions</th></tr>
+          </thead>
+          <tbody id="recentBody">
+            {% for a in recent_actions %}
+              <tr data-id="{{ a.id }}">
+                <td>{{ a.title }}</td>
+                <td>
+                  <span class="badge {{ a.status }}">{{ a.status.replace('-', ' ') }}</span>
+                </td>
+                <td>{{ a.updated_at.strftime('%Y-%m-%d %H:%M UTC') }}</td>
+                <td>
+                  <button class="btn ghost js-edit" data-id="{{ a.id }}">Edit</button>
+                  <button class="btn ghost js-view" data-id="{{ a.id }}">View</button>
+                  <button class="btn ghost js-del" data-id="{{ a.id }}">Delete</button>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="muted">No actions yet. Click <strong>+ New Action</strong> to create your first one.</p>
+    {% endif %}
+  </div>
+
+  <div class="card span-4">
+    <h3>Find actions</h3>
+    <div class="field">
+      <label for="q" class="sr-only">Query</label>
+      <input id="q" placeholder="Search title or description…" />
+    </div>
+    <div class="field">
+      <label for="filterStatus" class="sr-only">Status</label>
+      <select id="filterStatus">
+        <option value="">Any status</option>
+        <option value="pending">Pending</option>
+        <option value="in-progress">In progress</option>
+        <option value="done">Done</option>
+      </select>
+    </div>
+    <button class="btn" id="btnSearch">Search</button>
+    <div id="searchResults" style="margin-top:12px"></div>
+  </div>
+</section>
+
 {% endblock %}
