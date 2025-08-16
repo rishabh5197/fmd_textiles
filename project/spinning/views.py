@@ -17,17 +17,7 @@ def home():
 
 @spinning_bp.route("/login", methods=["GET", "POST"])
 def login():
-    form = LoginForm()
-    if form.validate_on_submit():
-        # Dummy lookup (replace with real password check)
-        user = User.query.filter_by(email=form.email.data.lower()).first()
-        if user:
-            login_user(user, remember=form.remember_me.data)
-            flash("Logged in!", "success")
-            next_url = request.args.get("next") or url_for("spinning.home")
-            return redirect(next_url)
-        flash("Invalid credentials.", "danger")
-    return render_template("base.html", content_title="Login", content=form)
+    return "<h1>this is login form</h1>"
 
 @spinning_bp.route("/logout")
 @login_required

@@ -1,11 +1,9 @@
 from datetime import datetime
 from flask_login import UserMixin
-from . import db
+from . import db  # <-- relative import is safest here
 
-# Example User model; expand as needed
 class User(UserMixin, db.Model):
     __tablename__ = "users"
-
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(255), unique=True, index=True, nullable=False)
     username = db.Column(db.String(80), unique=True, index=True, nullable=False)
