@@ -1,198 +1,394 @@
-/* Helper UI bits */
-const $ = (sel, ctx = document) => ctx.querySelector(sel);
-const $$ = (sel, ctx = document) => Array.from(ctx.querySelectorAll(sel));
 
-function toast(msg) {
-  const el = $("#toast");
-  el.textContent = msg;
-  el.style.display = "block";
-  setTimeout(() => el.style.display = "none", 2200);
-}
+/**
+ * Index page interactions for "Create Action" tile with draft persistence.
+ * - Stores a draft in sessionStorage so Back won't lose entries.
+ * - Auto-restores draft and opens modal when returning to index.
+ */
+const USE_MODAL = true;
+const DRAFT_KEY = "spinning:quickadd:draft";   // sessionStorage key
 
-/* Modal controls */
-const modal = $("#modalBackdrop");
-const openCreateBtn = $("#openCreate");
-const closeModalBtn = $("#closeModal");
-const cancelModalBtn = $("#cancelModal");
-const tileCreate = $("#tileCreate");
-const tileModify = $("#tileModify");
-const tileRetrieve = $("#tileRetrieve");
-const form = $("#actionForm");
-const submitBtn = $("#submitBtn");
-const modalTitle = $("#modalTitle");
+(function(){
+  const createTile = document.getElementById('tileCreate');
+  if (!createTile) return;
 
-function openModal(editing = false, data = null) {
-  modal.style.display = "flex";
-  if (editing && data) {
-    modalTitle.textContent = "Update Action";
-    $("#actionId").value = data.id;
-    $("#title").value = data.title;
-    $("#description").value = data.description || "";
-    $("#status").value = data.status || "pending";
-  } else {
-    modalTitle.textContent = "Create Action";
-    $("#actionId").value = "";
-    form.reset();
+  const addUrl = createTile.getAttribute('href') || '#';
+
+  // Clear draft if server told us so (?cleardraft=1 after DB save)
+  const params = new URLSearchParams(location.search);
+  if (params.get('cleardraft') === '1') {
+    clearDraft();
   }
-  setTimeout(() => $("#title").focus(), 0);
-}
-function closeModal() { modal.style.display = "none"; }
 
-openCreateBtn?.addEventListener("click", () => openModal(false));
-tileCreate?.addEventListener("click", () => openModal(false));
-closeModalBtn?.addEventListener("click", closeModal);
-cancelModalBtn?.addEventListener("click", closeModal);
-modal?.addEventListener("click", (e) => { if (e.target === modal) closeModal(); });
+  // Auto-open modal and restore draft if present
+  const draft = loadDraft();
+  if (USE_MODAL && draft && draft.rows && draft.rows.length) {
+    openQuickAddModal(addUrl, { restore: draft });
+  }
 
-/* Create / Update submit */
-form?.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  submitBtn.disabled = true;
+  if (!USE_MODAL) return;
 
-  const id = $("#actionId").value;
-  const payload = {
-    title: $("#title").value.trim(),
-    description: $("#description").value.trim(),
-    status: $("#status").value
-  };
+  // Intercept click to open modal
+  createTile.addEventListener('click', (e) => {
+    e.preventDefault();
+    openQuickAddModal(addUrl, { restore: draft });
+  });
 
-  try {
-    if (id) {
-      const res = await fetch(`/api/actions/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+  // ————————————————————————————————————————————————
+  // Modal
+  // ————————————————————————————————————————————————
+  function openQuickAddModal(targetUrl, { restore = null } = {}){
+    let backdrop = document.getElementById('quickAddBackdrop');
+
+    if (!backdrop) {
+      injectModalTweaks();
+
+      backdrop = document.createElement('div');
+      backdrop.className = 'modal-backdrop';
+      backdrop.id = 'quickAddBackdrop';
+      backdrop.setAttribute('role', 'presentation');
+
+      backdrop.innerHTML = `
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="qa-title">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+            <h3 id="qa-title" style="margin:4px 0 10px;">Quick add: Fabric & Bales</h3>
+            <button class="close-x" type="button" aria-label="Close">×</button>
+          </div>
+
+          <!-- Two-column body -->
+          <div class="qa-body">
+            <!-- Left: form/repeater -->
+            <div class="qa-left">
+              <div id="qa-repeater" class="repeater" aria-live="polite"></div>
+
+              <div class="actions">
+                <button id="qa-add-row" class="btn" type="button">+ Add another</button>
+                <div class="total">
+                  <span class="muted">Total bales:</span>
+                  <strong id="qa-total">0</strong>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right: live review table -->
+            <aside class="qa-right">
+              <h4 class="qa-right-title">Review</h4>
+              <div class="qa-table-wrap">
+                <table class="qa-table" aria-label="Entries review">
+                  <thead>
+                    <tr>
+                      <th style="width:44px;">#</th>
+                      <th>Fabric</th>
+                      <th style="width:120px;">Bales</th>
+                      <th style="width:112px;">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="qa-table-body"></tbody>
+                </table>
+              </div>
+            </aside>
+          </div>
+
+          <!-- Footer buttons -->
+          <div class="row">
+            <button id="qa-continue" class="btn" type="button">Continue</button>
+            <button id="qa-cancel" class="btn ghost" type="button">Cancel</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(backdrop);
+
+      // Wiring
+      const repeater  = backdrop.querySelector('#qa-repeater');
+      const tableBody = backdrop.querySelector('#qa-table-body');
+
+      // Initialize rows (from restore or empty)
+      if (restore && restore.rows && restore.rows.length) {
+        restore.rows.forEach((r, i) => {
+          repeater.insertAdjacentHTML('beforeend', rowHTML(i));
+          const sel = repeater.querySelector(`.rep-row[data-index="${i}"] select`);
+          const inp = repeater.querySelector(`.rep-row[data-index="${i}"] input[type="number"]`);
+          if (sel) sel.value = r.fabric || '';
+          if (inp) inp.value = r.bales ?? '';
+        });
+      } else {
+        repeater.insertAdjacentHTML('beforeend', rowHTML(0));
+      }
+
+      backdrop.addEventListener('click', (e) => {
+        if (e.target === backdrop) closeModal();
       });
-      const json = await res.json();
-      if (!json.ok) throw new Error(json.error || "Update failed");
-      toast("Action updated");
-    } else {
-      const res = await fetch("/api/actions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+      backdrop.querySelector('.close-x').addEventListener('click', closeModal);
+      backdrop.querySelector('#qa-cancel').addEventListener('click', closeModal);
+
+      // Add row
+      backdrop.querySelector('#qa-add-row').addEventListener('click', () => {
+        const next = repeater.querySelectorAll('.rep-row').length;
+        repeater.insertAdjacentHTML('beforeend', rowHTML(next));
+        updateTotal(repeater); renderTable(repeater, tableBody);
+        repeater.scrollTop = repeater.scrollHeight;
+        repeater.querySelector(`.rep-row[data-index="${next}"] select`)?.focus();
+        persistDraftFromDOM(repeater); // keep draft fresh
       });
-      const json = await res.json();
-      if (!json.ok) throw new Error(json.error || "Create failed");
-      toast("Action created");
+
+      // Remove row (left pane)
+      repeater.addEventListener('click', (e) => {
+        const btn = e.target.closest('.remove-row');
+        if (!btn) return;
+
+        const rows = [...repeater.querySelectorAll('.rep-row')];
+        if (rows.length === 1) {
+          rows[0].querySelector('select').selectedIndex = 0;
+          rows[0].querySelector('input[type="number"]').value = '';
+        } else {
+          btn.closest('.rep-row').remove();
+          renumber(repeater);
+        }
+        updateTotal(repeater); renderTable(repeater, tableBody);
+        persistDraftFromDOM(repeater);
+      });
+
+      // Live updates
+      repeater.addEventListener('input', (e) => {
+        if (!e.target.matches('select, input[type="number"]')) return;
+        updateTotal(repeater); renderTable(repeater, tableBody);
+        persistDraftFromDOM(repeater);
+      });
+
+      // Table actions
+      tableBody.addEventListener('click', (e) => {
+        const tr = e.target.closest('tr[data-index]');
+        if (!tr) return;
+        const idx = parseInt(tr.dataset.index, 10);
+        if (Number.isNaN(idx)) return;
+
+        if (e.target.closest('.qa-action-edit')) {
+          focusRow(repeater, idx, { highlight: true });
+        } else if (e.target.closest('.qa-action-delete')) {
+          const rows = [...repeater.querySelectorAll('.rep-row')];
+          if (rows.length === 1) {
+            rows[0].querySelector('select').selectedIndex = 0;
+            rows[0].querySelector('input[type="number"]').value = '';
+          } else {
+            rows[idx].remove();
+            renumber(repeater);
+          }
+          updateTotal(repeater); renderTable(repeater, tableBody);
+          persistDraftFromDOM(repeater);
+        } else {
+          focusRow(repeater, idx, { highlight: true });
+        }
+      });
+
+      // Continue —> persist draft and redirect
+      backdrop.querySelector('#qa-continue').addEventListener('click', () => {
+        const rows = collectRows(repeater);
+        saveDraft({ rows }); // persist so Back restores it
+
+        // Build query params for the review page (optional but useful)
+        const qp = new URLSearchParams();
+        rows.forEach((r, i) => {
+          if (r.fabric || r.bales !== '' && r.bales != null) {
+            qp.set(`lines-${i}-type`, r.fabric || '');
+            qp.set(`lines-${i}-bales`, r.bales === '' || r.bales == null ? '' : r.bales);
+          }
+        });
+        qp.set('prefill', '1');
+
+        const finalUrl = targetUrl + (targetUrl.includes('?') ? '&' : '?') + qp.toString();
+        window.location.assign(finalUrl);
+      });
     }
-    await refreshRecent(); // reflect changes
-    closeModal();
-  } catch (err) {
-    console.error(err);
-    toast(err.message || "Something went wrong");
-  } finally {
-    submitBtn.disabled = false;
+
+    // Show & init
+    backdrop.style.display = 'flex';
+    const repeater = backdrop.querySelector('#qa-repeater');
+    const tableBody = backdrop.querySelector('#qa-table-body');
+    updateTotal(repeater); renderTable(repeater, tableBody);
+    backdrop.querySelector('select')?.focus();
   }
-});
 
-/* Quick edit / view / delete from table */
-async function getActionById(id){
-  const res = await fetch(`/api/actions/${id}`);
-  if (res.status === 404) throw new Error("Action not found");
-  const json = await res.json();
-  return json.action;
-}
+  function closeModal(){
+    const el = document.getElementById('quickAddBackdrop');
+    if (el) el.style.display = 'none';
+  }
 
-$("#recentBody")?.addEventListener("click", async (e) => {
-  const btn = e.target.closest("button");
-  if (!btn) return;
-  const id = btn.dataset.id;
-  if (btn.classList.contains("js-edit")) {
-    const data = await getActionById(id);
-    openModal(true, data);
-  } else if (btn.classList.contains("js-view")) {
-    const data = await getActionById(id);
-    alert(`Title: ${data.title}\nStatus: ${data.status}\n\n${data.description || ""}`);
-  } else if (btn.classList.contains("js-del")) {
-    if (confirm("Delete this action?")) {
-      const res = await fetch(`/api/actions/${id}`, { method: "DELETE" });
-      const json = await res.json();
-      if (!json.ok) { toast(json.error || "Delete failed"); return; }
-      toast("Deleted");
-      await refreshRecent();
+  // ——— Persistence helpers ———
+  function saveDraft(data){
+    try { sessionStorage.setItem(DRAFT_KEY, JSON.stringify(data || {})); } catch {}
+  }
+  function loadDraft(){
+    try {
+      const raw = sessionStorage.getItem(DRAFT_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
+  }
+  function clearDraft(){
+    try { sessionStorage.removeItem(DRAFT_KEY); } catch {}
+  }
+  function persistDraftFromDOM(root){
+    saveDraft({ rows: collectRows(root) });
+  }
+  function collectRows(root){
+    const rows = [...root.querySelectorAll('.rep-row')];
+    return rows.map(r => {
+      const fabric = r.querySelector('select')?.value || '';
+      const balesStr = r.querySelector('input[type="number"]')?.value ?? '';
+      const bales = balesStr === '' ? '' : String(balesStr);
+      return { fabric, bales };
+    });
+  }
+
+  // ——— UI helpers ———
+  function rowHTML(i){
+    const opts = [
+      '', 'Cotton','Polyester','Viscose','Linen','Wool','Acrylic','Nylon','Blends'
+    ].map(v => v === ''
+      ? '<option value="" disabled selected>Choose fabric…</option>'
+      : `<option value="${v}">${v}</option>`
+    ).join('');
+    return `
+      <div class="rep-row" data-index="${i}" style="margin-bottom:12px;">
+        <div class="field">
+          <label for="lines-${i}-type">Fabric</label>
+          <select id="lines-${i}-type" name="lines-${i}-type" required>
+            ${opts}
+          </select>
+          <span class="hint">Pick a fabric type</span>
+        </div>
+
+        <div class="field">
+          <label for="lines-${i}-bales">Bales</label>
+          <input id="lines-${i}-bales" name="lines-${i}-bales" type="number"
+                 inputmode="numeric" min="0" step="1" required placeholder="0">
+          <span class="hint">Enter count (whole number)</span>
+        </div>
+
+        <button class="btn ghost remove-row" type="button" aria-label="Remove row">Remove</button>
+      </div>
+    `;
+  }
+  function renumber(root){
+    const rows = [...root.querySelectorAll('.rep-row')];
+    rows.forEach((row, i) => {
+      row.dataset.index = i;
+      const sel  = row.querySelector('select');
+      const inp  = row.querySelector('input[type="number"]');
+      const lab1 = row.querySelector('label[for$="-type"]');
+      const lab2 = row.querySelector('label[for$="-bales"]');
+      sel.name = `lines-${i}-type`; sel.id = `lines-${i}-type`;
+      inp.name = `lines-${i}-bales`; inp.id = `lines-${i}-bales`;
+      if (lab1) lab1.setAttribute('for', sel.id);
+      if (lab2) lab2.setAttribute('for', inp.id);
+    });
+  }
+  function updateTotal(root){
+    if (!root) return;
+    const nums = [...root.querySelectorAll('input[type="number"]')];
+    const total = nums.reduce((sum, el) => {
+      const v = parseInt(el.value, 10);
+      return sum + (Number.isFinite(v) ? v : 0);
+    }, 0);
+    const totalEl = document.getElementById('qa-total');
+    if (totalEl) totalEl.textContent = total;
+  }
+  function focusRow(repeater, index, { highlight=false } = {}){
+    const row = repeater.querySelector(`.rep-row[data-index="${index}"]`);
+    if (!row) return;
+    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    row.querySelector('select')?.focus({ preventScroll: true });
+    if (highlight) {
+      row.classList.add('qa-focus');
+      setTimeout(() => row.classList.remove('qa-focus'), 800);
     }
   }
-});
 
-/* Search / retrieve */
-$("#btnSearch")?.addEventListener("click", async () => {
-  const q = $("#q").value.trim();
-  const status = $("#filterStatus").value;
-  const params = new URLSearchParams();
-  if (q) params.set("q", q);
-  if (status) params.set("status", status);
-
-  const res = await fetch(`/api/actions?${params.toString()}`);
-  const json = await res.json();
-  const wrap = $("#searchResults");
-  if (!json.ok) { wrap.textContent = "Something went wrong"; return; }
-
-  if (!json.actions.length) {
-    wrap.innerHTML = `<p class="muted">No matching actions.</p>`;
-    return;
+  // Icons for table actions
+  function iconPencil(){
+    return `
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M12.3 6.3l5.4 5.4M14 4l6 6-9.8 9.8-4.6 1.2 1.2-4.6L14 4z"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>`;
   }
-  wrap.innerHTML = `
-    <div style="overflow:auto">
-      <table aria-label="Search results">
-        <thead><tr><th>Title</th><th>Status</th><th>Updated</th><th>Actions</th></tr></thead>
-        <tbody>
-          ${json.actions.map(a => `
-            <tr>
-              <td>${a.title}</td>
-              <td><span class="badge ${a.status}">${a.status.replace('-', ' ')}</span></td>
-              <td>${new Date(a.updated_at).toISOString().replace('T',' ').slice(0,16)} UTC</td>
-              <td>
-                <button class="btn ghost" onclick="openForEdit('${a.id}')">Edit</button>
-                <button class="btn ghost" onclick="openForView('${a.id}')">View</button>
-              </td>
-            </tr>
-          `).join("")}
-        </tbody>
-      </table>
-    </div>
-  `;
-});
+  function iconTrash(){
+    return `
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M10 11v6M14 11v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>`;
+  }
+  function renderTable(root, tableBody){
+    if (!root || !tableBody) return;
+    const rows = [...root.querySelectorAll('.rep-row')];
+    const html = rows.map((row, i) => {
+      const fabric = (row.querySelector('select')?.value || '').trim();
+      const bales  = row.querySelector('input[type="number"]')?.value || '';
+      return `
+        <tr data-index="${i}" class="qa-table-row" tabindex="0" title="Click to focus row ${i+1}">
+          <td>${i+1}</td>
+          <td>${fabric || '<span class="muted">—</span>'}</td>
+          <td>${bales !== '' ? bales : '<span class="muted">—</span>'}</td>
+          <td class="qa-actions-cell">
+            <button type="button" class="icon-btn qa-action-edit"   aria-label="Edit row ${i+1}" title="Edit">
+              ${iconPencil()}
+            </button>
+            <button type="button" class="icon-btn danger qa-action-delete" aria-label="Delete row ${i+1}" title="Delete">
+              ${iconTrash()}
+            </button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+    tableBody.innerHTML = html || `
+      <tr><td colspan="4" class="muted">No entries yet. Add rows on the left.</td></tr>
+    `;
+  }
 
-window.openForEdit = async (id) => {
-  const data = await getActionById(id);
-  openModal(true, data);
-};
-window.openForView = async (id) => {
-  const data = await getActionById(id);
-  alert(`Title: ${data.title}\nStatus: ${data.status}\n\n${data.description || ""}`);
-};
+  // Styling for independent scroll + wider modal/table
+  function injectModalTweaks(){
+    if (document.getElementById('qa-modal-tweaks')) return;
+    const css = `
+      .modal { max-width: 1040px; width: 96vw; max-height: 82vh;
+               display:flex; flex-direction:column; }
+      .qa-body { display:grid; grid-template-columns: 1.2fr 1fr; gap:16px;
+                 flex: 1 1 auto; min-height:0; overflow:hidden; }
+      @media (max-width: 980px){ .qa-body { grid-template-columns: 1fr; } }
 
-/* Modify tile opens modal after quick pick */
-tileModify?.addEventListener("click", async () => {
-  const res = await fetch("/api/actions");
-  const { actions } = await res.json();
-  if (!actions.length) { toast("No actions yet — create one first!"); return; }
-  // open the latest for convenience
-  openModal(true, actions[0]);
-});
+      .qa-left { display:flex; flex-direction:column; min-height:0; overflow:hidden; }
+      #qa-repeater { flex:1 1 auto; overflow:auto; padding-right:4px; margin-bottom:16px; }
 
-/* Retrieve tile focuses search */
-tileRetrieve?.addEventListener("click", () => $("#q").focus());
+      .rep-row { margin-bottom:12px; }
+      .rep-row .remove-row { margin-top:4px; }
+      .actions { margin-top:8px; margin-bottom:16px; padding-top:8px; border-top:1px solid rgba(14,165,233,.14); }
 
-/* Refresh recent table after changes */
-async function refreshRecent(){
-  const res = await fetch("/api/actions");
-  const json = await res.json();
-  if (!json.ok) return;
-  const recent = json.actions.slice(0,8);
-  const body = $("#recentBody");
-  if (!body) return;
-  body.innerHTML = recent.map(a => `
-    <tr data-id="${a.id}">
-      <td>${a.title}</td>
-      <td><span class="badge ${a.status}">${a.status.replace('-', ' ')}</span></td>
-      <td>${new Date(a.updated_at).toISOString().replace('T',' ').slice(0,16)} UTC</td>
-      <td>
-        <button class="btn ghost js-edit" data-id="${a.id}">Edit</button>
-        <button class="btn ghost js-view" data-id="${a.id}">View</button>
-        <button class="btn ghost js-del" data-id="${a.id}">Delete</button>
-      </td>
-    </tr>
-  `).join("");
-}
+      .qa-right { background: var(--card); border:1px solid rgba(14,165,233,.18);
+                  border-radius:12px; padding:12px; display:flex; flex-direction:column;
+                  min-height:0; overflow:hidden; }
+      .qa-right-title { margin:2px 0 8px; font-size:14px; color:var(--muted);
+                        text-transform:uppercase; letter-spacing:.4px; }
+      .qa-table-wrap { flex:1 1 auto; overflow:auto; }
+      .qa-table { width:100%; border-collapse: collapse; }
+      .qa-table th, .qa-table td { padding:10px; border-top:1px solid rgba(14,165,233,.14); text-align:left; }
+      .qa-table thead th { font-size:12px; color:var(--muted); letter-spacing:.4px; text-transform:uppercase; border-top:none; }
+      .qa-table tr:hover { background: rgba(14,165,233,.06); cursor: pointer; }
+      .qa-actions-cell { display:flex; gap:8px; align-items:center; }
+
+      .icon-btn { appearance:none; border:1px solid rgba(14,165,233,.28);
+                  background: transparent; color: var(--text);
+                  padding:6px; border-radius:10px; cursor:pointer;
+                  display:inline-flex; align-items:center; justify-content:center;
+                  transition: transform .08s ease, background .15s ease, border-color .15s ease; }
+      .icon-btn:hover { background: rgba(14,165,233,.10); transform: translateY(-1px); }
+      .icon-btn:active { transform: translateY(0) scale(.98); }
+      .icon-btn.danger { border-color: rgba(239,68,68,.35); color: #fecaca; }
+      .icon-btn.danger:hover { background: rgba(239,68,68,.12); }
+
+      .qa-focus { outline: 2px solid var(--accent-2); border-radius:10px; transition: outline-color .2s; }
+    `;
+    const style = document.createElement('style');
+    style.id = 'qa-modal-tweaks';
+    style.innerHTML = css;
+    document.head.appendChild(style);
+  }
+})();

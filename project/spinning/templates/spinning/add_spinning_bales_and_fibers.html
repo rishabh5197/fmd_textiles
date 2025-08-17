@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Review · Spinning Bales & Fibers{% endblock %}
+{% block content %}
+
+<section class="hero" aria-labelledby="heroTitle">
+  <h1 id="heroTitle">Review Entries</h1>
+  <p class="muted">Here’s what you just entered. You can go back and adjust if needed.</p>
+</section>
+
+<div class="grid">
+  <!-- Left: table of entries -->
+  <div class="card span-8">
+    <h3>Entries</h3>
+
+    {% if entries and entries|length > 0 %}
+      <div class="qa-table-wrap">
+        <table class="qa-table" aria-label="Entries review">
+          <thead>
+            <tr>
+              <th style="width:44px;">#</th>
+              <th>Fabric</th>
+              <th style="width:140px;">Bales</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for e in entries %}
+              <tr>
+                <td>{{ e.row }}</td>
+                <td>{{ e.fabric or '—' }}</td>
+                <td>{{ e.bales if e.bales != '' else '—' }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr>
+              <th colspan="2" style="text-align:right;">Total bales</th>
+              <th>{{ total_bales }}</th>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    {% else %}
+      <p class="muted">No entries were provided.</p>
+    {% endif %}
+  </div>
+
+  <!-- Right: actions -->
+  <div class="card span-4">
+    <h3>Next steps</h3>
+    <p class="muted">If something’s off, jump back and tweak it.</p>
+
+    <div class="row">
+      <!-- Use blueprint name 'spinning' -->
+      <a class="btn" href="{{ url_for('spinning.home') }}">Back</a>
+      <button class="btn ghost" type="button" onclick="history.back()">Go Back</button>
+    </div>
+
+    <div style="height:8px"></div>
+
+    <div class="row">
+      <!-- Placeholder for real save later -->
+      <button class="btn" type="button" disabled title="Coming soon">Save to database</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

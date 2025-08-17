@@ -4,45 +4,55 @@
 
 <section class="hero" aria-labelledby="heroTitle">
   <h1 id="heroTitle">A Faster way to make life easier</h1>
-  <p>Create modify or do anything.</p>
+  <p>Create, modify, or retrieve anything.</p>
 </section>
 
 <section class="grid" aria-label="Quick actions">
   <div class="card span-4">
-    <div class="tile" id="tileCreate">
+    <a class="tile" id="tileCreate" href="{{ url_for('spinning.add_data_spinning_bales_and_fibers') }}">
       <div class="ic" aria-hidden="true">
         <!-- plus icon -->
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 5v14M5 12h14" stroke="white" stroke-width="2" stroke-linecap="round"/>
+        </svg>
       </div>
       <div class="txt">
         <strong>Create Action</strong>
         <small>Start something new</small>
       </div>
-    </div>
+    </a>
   </div>
+
   <div class="card span-4">
-    <div class="tile" id="tileModify">
+    <a class="tile" id="tileModify" href="{{ url_for('spinning.modify_actions') }}">
       <div class="ic" aria-hidden="true">
         <!-- edit icon -->
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12.3 6.3l5.4 5.4m-1.6-7l1.6 1.6c.8.8.8 2.1 0 2.9l-8.8 8.8-4.6 1.2 1.2-4.6 8.8-8.8c.8-.8 2.1-.8 2.9 0z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12.3 6.3l5.4 5.4m-1.6-7l1.6 1.6c.8.8.8 2.1 0 2.9l-8.8 8.8-4.6 1.2 1.2-4.6 8.8-8.8c.8-.8 2.1-.8 2.9 0z"
+                stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
       </div>
       <div class="txt">
         <strong>Modify Action</strong>
         <small>Update title, notes, status</small>
       </div>
-    </div>
+    </a>
   </div>
+
   <div class="card span-4">
-    <div class="tile" id="tileRetrieve">
+    <a class="tile" id="tileRetrieve" href="{{ url_for('spinning.retrieve_actions') }}">
       <div class="ic" aria-hidden="true">
         <!-- search icon -->
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15z" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15z"
+                stroke="white" stroke-width="2" stroke-linecap="round"/>
+        </svg>
       </div>
       <div class="txt">
         <strong>Retrieve Actions</strong>
         <small>Search & filter instantly</small>
       </div>
-    </div>
+    </a>
   </div>
 </section>
 {% endblock %}
