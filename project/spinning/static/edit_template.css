@@ -1,0 +1,309 @@
+/* ========== Modern, Client-Ready CSS (drop-in) ========== */
+/* Designed to work with your existing markup:
+   .wrap, .card, .grid-2, .bales, .bhead, .brow, .bidx, .actions, .btn, .toggle/.slider
+   No HTML changes required. Turns the bale rows into 2-column responsive cards.
+*/
+
+/* ------- Design Tokens ------- */
+:root {
+  --bg: #0b1020;
+  --surface: #11162a;
+  --surface-2: #0c1224;
+  --text: #edf2fb;
+  --muted: #9aa3b2;
+  --primary: #3b82f6;
+  --primary-2: #2563eb;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --error: #ef4444;
+  --border: rgba(255, 255, 255, 0.08);
+  --ring: rgba(59, 130, 246, 0.45);
+  --shadow-lg: 0 20px 50px rgba(0, 0, 0, 0.45);
+  --shadow-md: 0 10px 30px rgba(0, 0, 0, 0.35);
+  --radius-lg: 16px;
+  --radius-md: 12px;
+  --radius-sm: 10px;
+  --field-h: 42px;
+  --gap: 16px;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f7f9fc;
+    --surface: #ffffff;
+    --surface-2: #f5f7fb;
+    --text: #0e1320;
+    --muted: #5c6676;
+    --primary: #2563eb;
+    --primary-2: #1d4ed8;
+    --border: rgba(17, 24, 39, 0.12);
+    --ring: rgba(37, 99, 235, 0.25);
+    --shadow-lg: 0 20px 50px rgba(17, 24, 39, 0.14);
+    --shadow-md: 0 10px 25px rgba(17, 24, 39, 0.12);
+  }
+}
+
+/* ------- Page & Card ------- */
+body {
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.wrap {
+  max-width: 1200px;
+  margin: 32px auto;
+  padding: 0 16px;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 24px;
+  overflow: hidden;
+}
+
+h2 {
+  margin: 0 0 6px;
+  font-weight: 800;
+  letter-spacing: .2px;
+  line-height: 1.2;
+}
+
+.sub {
+  color: var(--muted);
+  margin-bottom: 18px;
+}
+
+/* ------- Form Fields ------- */
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--gap);
+  margin-bottom: 18px;
+}
+
+.row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field {
+  font-size: .9rem;
+  color: var(--muted);
+}
+
+input[type="text"] {
+  height: var(--field-h);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 10px 12px;
+  outline: none;
+  transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+}
+input[type="text"]::placeholder { color: color-mix(in oklab, var(--muted) 70%, transparent); }
+
+input[type="text"]:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px var(--ring);
+}
+
+/* ------- Actions / Buttons ------- */
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.btn {
+  appearance: none;
+  border: 1px solid transparent;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform .08s ease, box-shadow .18s ease, background .18s ease, border-color .18s ease;
+  will-change: transform;
+}
+
+.btn.primary {
+  background: linear-gradient(180deg, var(--primary), var(--primary-2));
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(37, 99, 235, .35);
+}
+.btn.primary:hover { transform: translateY(-1px); }
+.btn.primary:active { transform: translateY(0); }
+
+.btn.ghost {
+  background: transparent;
+  color: var(--text);
+  border-color: var(--border);
+}
+.btn.ghost:hover {
+  background: color-mix(in oklab, var(--surface-2) 70%, transparent);
+}
+
+.btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px var(--ring);
+}
+
+/* ------- Bales: turn rows into 2-column responsive cards ------- */
+.bales {
+  margin-top: 6px;
+}
+
+/* Hide the legacy header row; cards will include their own inline labels */
+.bhead { display: none; }
+
+/* Make the container a grid of cards (2 per row on desktop) */
+.bales {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--gap);
+}
+
+/* Each .brow becomes a card */
+.brow {
+  display: grid;
+  grid-template-columns: auto 1fr auto; /* index | variant | switch */
+  align-items: center;
+  gap: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  box-shadow: var(--shadow-md);
+  transition: transform .12s ease, box-shadow .2s ease;
+}
+
+.brow:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px rgba(0,0,0,.28);
+}
+
+/* Index chip */
+.bidx {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: color-mix(in oklab, var(--surface) 70%, var(--bg));
+  border: 1px solid var(--border);
+  font-weight: 800;
+  color: color-mix(in oklab, var(--primary) 70%, #9ec3ff);
+  letter-spacing: .2px;
+}
+
+/* Ensure the variant input stretches nicely within the card */
+.brow > div:nth-child(2) input[type="text"] {
+  width: 100%;
+}
+
+/* Recycled label near the switch (implicit, optional) */
+.brow .recycle-label {
+  display: none; /* keep UI minimal; reveal if needed */
+}
+
+/* ------- Pro Switch (Accessible) ------- */
+.toggle {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 62px;
+  height: 34px;
+}
+.toggle input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  margin: 0;
+}
+
+.slider {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 999px;
+  background: #9ca3af; /* OFF */
+  box-shadow:
+    inset 0 2px 6px rgba(0,0,0,.35),
+    0 1px 0 rgba(255,255,255,.06);
+  transition: background .22s ease, box-shadow .22s ease, transform .12s ease;
+}
+
+/* Knob */
+.slider::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 4px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow:
+    0 2px 6px rgba(0,0,0,.35),
+    inset 0 -1px 2px rgba(0,0,0,.08);
+  transition: transform .22s ease, background .22s ease, box-shadow .22s ease;
+}
+
+/* ON state */
+.toggle input:checked + .slider {
+  background: linear-gradient(180deg, var(--primary), var(--primary-2));
+  box-shadow:
+    inset 0 2px 8px rgba(0,0,0,.45),
+    0 1px 0 rgba(255,255,255,.08);
+}
+.toggle input:checked + .slider::before {
+  transform: translateX(28px);
+  background: #e6f2ff;
+  box-shadow:
+    0 2px 8px rgba(0,0,0,.45),
+    0 0 12px rgba(59,130,246,.55);
+}
+
+/* Focus ring for keyboard users */
+.toggle input:focus-visible + .slider {
+  outline: none;
+  box-shadow: 0 0 0 4px var(--ring), inset 0 2px 6px rgba(0,0,0,.35);
+}
+
+/* Hover lift */
+.toggle:hover .slider { transform: translateY(-0.5px); }
+
+/* ------- Responsive ------- */
+@media (max-width: 980px) {
+  .grid-2 { grid-template-columns: 1fr; }
+}
+@media (max-width: 860px) {
+  .bales { grid-template-columns: 1fr; }
+}
+
+/* ------- Motion preferences ------- */
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+
+/* ------- Subtle form validation styles (optional hooks) ------- */
+input[type="text"].is-valid {
+  border-color: color-mix(in oklab, var(--success) 70%, var(--border));
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--success) 30%, transparent);
+}
+input[type="text"].is-invalid {
+  border-color: color-mix(in oklab, var(--error) 65%, var(--border));
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--error) 25%, transparent);
+}
+
+/* ------- Fine polish on headings/links (if any) ------- */
+a { color: var(--primary); text-decoration: none; }
+a:hover { text-decoration: underline; }
